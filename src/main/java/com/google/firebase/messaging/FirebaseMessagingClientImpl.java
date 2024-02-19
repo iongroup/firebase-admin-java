@@ -60,7 +60,7 @@ import java.util.Map;
  */
 final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
 
-  private static final String FCM_URL = "https://fcm.googleapis.com/v1/projects/%s/messages:send";
+  private final String FCM_URL;
 
   private static final Map<String, String> COMMON_HEADERS =
       ImmutableMap.of(
@@ -77,6 +77,7 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
   private final MessagingBatchClient batchClient;
 
   private FirebaseMessagingClientImpl(Builder builder) {
+    this.FCM_URL = builder.rootUrl + "/v1/projects/%s/messages:send";
     checkArgument(!Strings.isNullOrEmpty(builder.projectId));
     this.fcmSendUrl = String.format(FCM_URL, builder.projectId);
     this.requestFactory = checkNotNull(builder.requestFactory);
@@ -86,7 +87,7 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
     this.errorHandler = new MessagingErrorHandler(this.jsonFactory);
     this.httpClient = new ErrorHandlingHttpClient<>(requestFactory, jsonFactory, errorHandler)
       .setInterceptor(responseInterceptor);
-    this.batchClient = new MessagingBatchClient(requestFactory.getTransport(), jsonFactory);
+    this.batchClient = new MessagingBatchClient(requestFactory.getTransport(), jsonFactory, builder.rootUrl);
   }
 
   @VisibleForTesting
@@ -139,7 +140,7 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
       return new BatchResponseImpl(callback.getResponses());
     } catch (HttpResponseException e) {
       OutgoingHttpRequest req = new OutgoingHttpRequest(
-          HttpMethods.POST, MessagingBatchClient.FCM_BATCH_URL);
+          HttpMethods.POST, batchClient.FCM_BATCH_URL);
       IncomingHttpResponse resp = new IncomingHttpResponse(e, req);
       throw errorHandler.handleHttpResponseException(e, resp);
     } catch (IOException e) {
@@ -207,6 +208,7 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
     private HttpRequestFactory childRequestFactory;
     private JsonFactory jsonFactory;
     private HttpResponseInterceptor responseInterceptor;
+    private String rootUrl = "https://fcm.googleapis.com";
 
     private Builder() { }
 
@@ -232,6 +234,11 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
 
     Builder setResponseInterceptor(HttpResponseInterceptor responseInterceptor) {
       this.responseInterceptor = responseInterceptor;
+      return this;
+    }
+
+    Builder setRootUrl(String rootUrl) {
+      this.rootUrl = rootUrl;
       return this;
     }
 
@@ -319,22 +326,25 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
 
   private static class MessagingBatchClient extends AbstractGoogleJsonClient {
 
-    private static final String FCM_ROOT_URL = "https://fcm.googleapis.com";
     private static final String FCM_BATCH_PATH = "batch";
-    private static final String FCM_BATCH_URL = String.format(
-        "%s/%s", FCM_ROOT_URL, FCM_BATCH_PATH);
+    private final String FCM_BATCH_URL;
 
-    MessagingBatchClient(HttpTransport transport, JsonFactory jsonFactory) {
-      super(new Builder(transport, jsonFactory));
+    MessagingBatchClient(HttpTransport transport, JsonFactory jsonFactory, String rootUrl) {
+      super(new Builder(transport, jsonFactory, rootUrl));
+      FCM_BATCH_URL = String.format("%s/%s", rootUrl, FCM_BATCH_PATH);
     }
 
     private MessagingBatchClient(Builder builder) {
       super(builder);
+      FCM_BATCH_URL = String.format("%s/%s", builder.rootUrl, FCM_BATCH_PATH);
     }
 
     private static class Builder extends AbstractGoogleJsonClient.Builder {
-      Builder(HttpTransport transport, JsonFactory jsonFactory) {
-        super(transport, jsonFactory, FCM_ROOT_URL, "", null, false);
+      private final String rootUrl;
+
+      Builder(HttpTransport transport, JsonFactory jsonFactory, String rootUrl) {
+        super(transport, jsonFactory, rootUrl, "", null, false);
+        this.rootUrl = rootUrl;
         setBatchPath(FCM_BATCH_PATH);
         setApplicationName("fire-admin-java");
       }
