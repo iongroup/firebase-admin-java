@@ -194,6 +194,7 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
         .setRequestFactory(ApiClientUtils.newAuthorizedRequestFactory(app))
         .setChildRequestFactory(ApiClientUtils.newUnauthorizedRequestFactory(app))
         .setJsonFactory(app.getOptions().getJsonFactory())
+        .setRootUrl(app.getOptions().getFcmRootUrl())
         .build();
   }
 
@@ -208,7 +209,7 @@ final class FirebaseMessagingClientImpl implements FirebaseMessagingClient {
     private HttpRequestFactory childRequestFactory;
     private JsonFactory jsonFactory;
     private HttpResponseInterceptor responseInterceptor;
-    private String rootUrl = "https://fcm.googleapis.com";
+    private String rootUrl;
 
     private Builder() { }
 

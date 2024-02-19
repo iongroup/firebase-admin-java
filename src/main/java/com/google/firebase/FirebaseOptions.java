@@ -85,6 +85,7 @@ public final class FirebaseOptions {
   private final JsonFactory jsonFactory;
   private final ThreadManager threadManager;
   private final FirestoreOptions firestoreOptions;
+  private final String fcmRootUrl;
 
   private FirebaseOptions(@NonNull final FirebaseOptions.Builder builder) {
     this.databaseUrl = builder.databaseUrl;
@@ -113,6 +114,7 @@ public final class FirebaseOptions {
     checkArgument(builder.readTimeout >= 0);
     this.readTimeout = builder.readTimeout;
     this.firestoreOptions = builder.firestoreOptions;
+    this.fcmRootUrl = builder.fcmRootUrl;
   }
 
   /**
@@ -216,6 +218,10 @@ public final class FirebaseOptions {
     return firestoreOptions;
   }
 
+  public String getFcmRootUrl() {
+    return fcmRootUrl;
+  }
+
   /**
    * Creates an empty builder.
    *
@@ -260,6 +266,7 @@ public final class FirebaseOptions {
     private ThreadManager threadManager;
     private int connectTimeout;
     private int readTimeout;
+    private String fcmRootUrl = "https://fcm.googleapis.com";
 
     /**
      * Constructs an empty builder.
@@ -290,6 +297,7 @@ public final class FirebaseOptions {
       connectTimeout = options.connectTimeout;
       readTimeout = options.readTimeout;
       firestoreOptions = options.firestoreOptions;
+      fcmRootUrl = options.fcmRootUrl;
     }
 
     /**
@@ -492,6 +500,14 @@ public final class FirebaseOptions {
      */
     public Builder setReadTimeout(int readTimeout) {
       this.readTimeout = readTimeout;
+      return this;
+    }
+
+    /**
+     * By default is 
+     */
+    public Builder setFcmRootUrl(String fcmRootUrl) {
+      this.fcmRootUrl = fcmRootUrl;
       return this;
     }
 
